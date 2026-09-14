@@ -1505,7 +1505,7 @@ function Footer({ setPage }) {
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[
                 { Icon: IconWhatsapp, href: `https://wa.me/${SOSMED.whatsapp}`, label: "WhatsApp" },
-                { Icon: Mail, href: `mailto:${SOSMED.email}`, label: "Email" },
+                { Icon: Mail, href: `mailto:tbquran.syanayya@gmail.com`, label: "Email" },
                 { Icon: IconInstagram, href: `https://www.instagram.com/tbq_syanayya_depok/`, label: "Instagram" },
                 { Icon: IconFacebook, href: `https://web.facebook.com/tamansyanayya/`, label: "Facebook" },
                 { Icon: IconTiktok, href: SOSMED.tiktok, label: "TikTok" },
