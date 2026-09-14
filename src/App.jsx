@@ -1506,8 +1506,8 @@ function Footer({ setPage }) {
               {[
                 { Icon: IconWhatsapp, href: `https://wa.me/${SOSMED.whatsapp}`, label: "WhatsApp" },
                 { Icon: Mail, href: `mailto:${SOSMED.email}`, label: "Email" },
-                { Icon: IconInstagram, href: SOSMED.instagram, label: "Instagram" },
-                { Icon: IconFacebook, href: SOSMED.facebook, label: "Facebook" },
+                { Icon: IconInstagram, href: `https://www.instagram.com/tbq_syanayya_depok/`, label: "Instagram" },
+                { Icon: IconFacebook, href: `https://web.facebook.com/tamansyanayya/`, label: "Facebook" },
                 { Icon: IconTiktok, href: SOSMED.tiktok, label: "TikTok" },
               ].map(({ Icon, href, label }) => (
                 <a
