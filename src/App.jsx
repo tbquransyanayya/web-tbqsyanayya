@@ -49,7 +49,7 @@ function IconTiktok({ size = 18, color = "currentColor" }) {
    IMAGE ASSETS (base64, derived from the yayasan's own photos)
    ============================================================ */
 const IMAGES = {
-  logo: "/images/logo.svg",
+  logo: "/images/logo.png",
   gate: "/images/gate.jpg",
   hero_building: "/images/hero_building.jpg",
   musholla: "/images/musholla.jpg",
@@ -208,12 +208,12 @@ const BANK = {
   bank: "Bank Syari'ah Indonesia (BSI)",
   norek: "9114965480",
   atasNama: "TBQ SYANAYYA",
-  konfirmasi: "081213123466 / 081332255855",
 };
-// Kontak pengurus untuk konfirmasi donasi/wakaf via WhatsApp
+// Kontak pengurus untuk konfirmasi donasi/wakaf via WhatsApp — dipakai untuk
+// tombol konfirmasi, bagian "Transfer Langsung", dan Kontak di footer.
 const PENGURUS_KONTAK = [
-  { id: 1, nama: "Pengurus 1 (Salim Abu Hijroh)", nomor: "6281213123466" },
-  { id: 2, nama: "Pengurus 2 (Anggi Wicaksono)", nomor: "6281332255855" },
+  { id: 1, nama: "Salim Abu Hijroh", nomorLokal: "081213123466", nomor: "6281213123466" },
+  { id: 2, nama: "Anggi Wicaksono", nomorLokal: "081332255855", nomor: "6281332255855" },
 ];
 
 // Lokasi Google Maps TBQ Syanayya
@@ -364,10 +364,11 @@ async function storageSave(data, secret) {
       body: JSON.stringify({ action: "save", secret, data }),
     });
     const json = await res.json();
-    return !!json.ok;
+    if (!json.ok) console.error("Gagal menyimpan data:", json.error);
+    return { ok: !!json.ok, error: json.error };
   } catch (e) {
     console.error("Gagal menyimpan data:", e);
-    return false;
+    return { ok: false, error: e.message };
   }
 }
 
@@ -1082,41 +1083,13 @@ function Pengurus({ pengurus }) {
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, letterSpacing: "0.1em", color: T.palm, marginBottom: 16, textTransform: "uppercase" }}>
                 {g.label}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
-                {members.map((m) => {
-                  const initials = m.nama
-                    .split(" ")
-                    .filter((w) => w.length > 1 || /[A-Za-z]/.test(w))
-                    .slice(0, 2)
-                    .map((w) => w[0])
-                    .join("")
-                    .toUpperCase();
-                  return (
-                    <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 14, background: T.limestone, borderRadius: 16, padding: "14px 16px" }}>
-                      <div
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 14,
-                          background: T.green,
-                          color: T.brassLight,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          fontFamily: "'Reem Kufi', sans-serif",
-                          fontSize: 15,
-                        }}
-                      >
-                        {initials}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, lineHeight: 1.3 }}>{m.nama}</div>
-                        <div style={{ fontSize: 12, color: "#8A8874" }}>{m.jabatan}</div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+                {members.map((m) => (
+                  <div key={m.id} style={{ background: T.limestone, borderRadius: 14, padding: "14px 16px" }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.ink, lineHeight: 1.3 }}>{m.nama}</div>
+                    <div style={{ fontSize: 12.5, color: "#8A8874", marginTop: 2 }}>{m.jabatan}</div>
+                  </div>
+                ))}
               </div>
             </div>
           );
@@ -1326,7 +1299,7 @@ function CampaignCard({ project }) {
             <div style={{ fontFamily: "'Reem Kufi', sans-serif", fontSize: 18, color: T.ink }}>{project.nama}</div>
             <div style={{ fontSize: 11.5, color: T.brass, fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase" }}>
               {project.tipe === "bulanan"
-                ? `Periode ${periodLabel(currentPeriodKey())} · reset tiap tgl 1`
+                ? `Periode ${periodLabel(currentPeriodKey())}`
                 : "Proyek pembangunan"}
             </div>
           </div>
@@ -1469,8 +1442,17 @@ function DonasiSection({ projects }) {
                 {copied ? <Check size={15} /> : <Copy size={15} />}
               </button>
             </div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginBottom: 10 }}>a.n. {BANK.atasNama}</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>Konfirmasi: {BANK.konfirmasi}</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginBottom: 14 }}>a.n. {BANK.atasNama}</div>
+            <div style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              Konfirmasi ke
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {PENGURUS_KONTAK.map((k) => (
+                <div key={k.id} style={{ fontSize: 13, color: "rgba(255,255,255,0.85)" }}>
+                  {k.nama} <span style={{ color: "rgba(255,255,255,0.55)" }}>· {k.nomorLokal}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -1512,8 +1494,13 @@ function Footer({ setPage }) {
           </div>
           <div>
             <div style={{ fontSize: 12, color: T.brassLight, marginBottom: 12, fontFamily: "'JetBrains Mono', monospace" }}>KONTAK</div>
-            <div style={{ display: "flex", gap: 8, fontSize: 13, color: "rgba(255,255,255,0.75)", marginBottom: 14 }}>
-              <Phone size={15} /> {BANK.konfirmasi}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+              {PENGURUS_KONTAK.map((k) => (
+                <div key={k.id} style={{ display: "flex", gap: 8, fontSize: 13, color: "rgba(255,255,255,0.75)" }}>
+                  <Phone size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{k.nama} · {k.nomorLokal}</span>
+                </div>
+              ))}
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[
@@ -2278,10 +2265,13 @@ export default function App() {
   const save = useCallback(
     async (next) => {
       setSaving(true);
-      const ok = await storageSave(next, adminSecret);
+      const result = await storageSave(next, adminSecret);
       setSaving(false);
-      if (!ok) {
-        alert("Gagal menyimpan ke Google Sheets. Periksa koneksi internet, lalu coba lagi.");
+      if (!result.ok) {
+        alert(
+          "Gagal menyimpan ke Google Sheets" +
+            (result.error ? `:\n\n${result.error}` : ". Periksa koneksi internet, lalu coba lagi.")
+        );
       }
     },
     [adminSecret]

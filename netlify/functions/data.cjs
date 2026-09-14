@@ -143,39 +143,83 @@ async function ensureSheet(doc, title, headers) {
   let sheet = doc.sheetsByTitle[title];
   if (!sheet) {
     sheet = await doc.addSheet({ title, headerValues: headers });
-  } else if (!sheet.headerValues || sheet.headerValues.length === 0) {
-    await sheet.setHeaderRow(headers);
   }
   return sheet;
 }
 
-async function rewriteSheet(doc, title, headers, rowObjects) {
-  const sheet = await ensureSheet(doc, title, headers);
-  await sheet.clear();
-  await sheet.setHeaderRow(headers);
-  if (rowObjects.length) {
-    const clean = rowObjects.map((o) => {
-      const c = {};
-      headers.forEach((h) => (c[h] = o[h] === undefined || o[h] === null ? "" : o[h]));
-      return c;
-    });
-    await sheet.addRows(clean);
+/**
+ * Memastikan semua tab (Pengurus, Projects, dst) sudah ada di spreadsheet.
+ * Ini hanya benar-benar memanggil Google Sheets API kalau ada tab yang
+ * BELUM ada (biasanya cuma sekali, saat situs pertama kali dipakai) —
+ * `doc.loadInfo()` di `getDoc()` sudah memuat daftar tab yang ada tanpa
+ * biaya panggilan tambahan.
+ */
+async function ensureAllSheets(doc) {
+  for (const [title, headers] of Object.entries(SHEET_SCHEMAS)) {
+    await ensureSheet(doc, title, headers);
   }
 }
 
+/**
+ * Membaca SEMUA tab dalam SATU panggilan Google Sheets API
+ * (values:batchGet), bukan satu panggilan per tab. Ini penting supaya
+ * situs tetap cepat & tidak gampang kena limit/timeout di koneksi
+ * lambat — sebelumnya ini butuh 8 panggilan terpisah (satu per tab).
+ */
 async function readRaw(doc) {
+  await ensureAllSheets(doc);
+  const titles = Object.keys(SHEET_SCHEMAS);
+  const ranges = titles.map((t) => `${t}!A1:Z20000`);
+  const res = await doc.sheetsApi.get("/values:batchGet", {
+    params: { ranges, valueRenderOption: "UNFORMATTED_VALUE" },
+  });
+  const valueRanges = res.data.valueRanges || [];
   const out = {};
-  for (const [title, headers] of Object.entries(SHEET_SCHEMAS)) {
-    const sheet = await ensureSheet(doc, title, headers);
-    const rows = await sheet.getRows();
-    out[title] = rows.map((r) => {
+  titles.forEach((title, i) => {
+    const headers = SHEET_SCHEMAS[title];
+    const values = (valueRanges[i] && valueRanges[i].values) || [];
+    const sheetHeaders = values[0] || headers;
+    const dataRows = values.slice(1);
+    out[title] = dataRows.map((row) => {
       const obj = {};
-      headers.forEach((h) => (obj[h] = r.get(h)));
+      sheetHeaders.forEach((h, idx) => (obj[h] = row[idx]));
       return obj;
     });
-  }
+  });
   return out;
 }
+
+/**
+ * Menulis SEMUA tab dalam DUA panggilan Google Sheets API total
+ * (satu values:batchClear + satu values:batchUpdate), bukan
+ * clear+setHeader+addRows per tab (dulu 24 panggilan untuk 8 tab).
+ * Inilah yang tadinya bikin "Simpan" gampang timeout / gagal di
+ * koneksi HP yang lebih lambat.
+ */
+async function writeAllSheetsBatched(doc, dataByTitle) {
+  await ensureAllSheets(doc);
+  const titles = Object.keys(SHEET_SCHEMAS);
+
+  await doc.sheetsApi.post("/values:batchClear", {
+    ranges: titles.map((t) => `${t}!A1:Z20000`),
+  });
+
+  const data = titles.map((title) => {
+    const headers = SHEET_SCHEMAS[title];
+    const rowObjects = dataByTitle[title] || [];
+    const values = [
+      headers,
+      ...rowObjects.map((o) => headers.map((h) => (o[h] === undefined || o[h] === null ? "" : o[h]))),
+    ];
+    return { range: `${title}!A1`, values };
+  });
+
+  await doc.sheetsApi.post("/values:batchUpdate", {
+    valueInputOption: "RAW",
+    data,
+  });
+}
+
 
 function assembleData(raw) {
   const hasAnyData = Object.values(raw).some((rows) => rows && rows.length > 0);
@@ -226,24 +270,10 @@ function assembleData(raw) {
 }
 
 async function writeData(doc, data) {
-  await rewriteSheet(
-    doc, "Pengurus", SHEET_SCHEMAS.Pengurus,
-    (data.pengurus || []).map((p) => ({ id: p.id, nama: p.nama, jabatan: p.jabatan, grup: p.grup }))
-  );
-
-  await rewriteSheet(
-    doc, "Projects", SHEET_SCHEMAS.Projects,
-    (data.projects || []).map((p) => ({
-      id: p.id, nama: p.nama, slug: p.slug, deskripsi: p.deskripsi, tipe: p.tipe,
-      target: p.target, terkumpul: p.terkumpul, icon: p.icon,
-    }))
-  );
-
   const donaturTetapRows = [];
   (data.projects || []).forEach((p) =>
     (p.donaturTetap || []).forEach((d) => donaturTetapRows.push({ id: d.id, projectId: p.id, nama: d.nama, jumlah: d.jumlah }))
   );
-  await rewriteSheet(doc, "DonaturTetap", SHEET_SCHEMAS.DonaturTetap, donaturTetapRows);
 
   const donaturBulanIniRows = [];
   (data.projects || []).forEach((p) =>
@@ -251,54 +281,64 @@ async function writeData(doc, data) {
       donaturBulanIniRows.push({ id: d.id, projectId: p.id, nama: d.nama, jumlah: d.jumlah, tanggal: d.tanggal })
     )
   );
-  await rewriteSheet(doc, "DonaturBulanIni", SHEET_SCHEMAS.DonaturBulanIni, donaturBulanIniRows);
 
-  await rewriteSheet(
-    doc, "Gallery", SHEET_SCHEMAS.Gallery,
-    (data.gallery || []).map((g) => ({ id: g.id, src: g.src, caption: g.caption }))
-  );
-
-  await rewriteSheet(doc, "Santri", SHEET_SCHEMAS.Santri, [data.santri || {}]);
-
-  await rewriteSheet(
-    doc, "LaporanBulanan", SHEET_SCHEMAS.LaporanBulanan,
-    (data.laporanBulanan || []).map((l) => ({
+  const dataByTitle = {
+    Pengurus: (data.pengurus || []).map((p) => ({ id: p.id, nama: p.nama, jabatan: p.jabatan, grup: p.grup })),
+    Projects: (data.projects || []).map((p) => ({
+      id: p.id, nama: p.nama, slug: p.slug, deskripsi: p.deskripsi, tipe: p.tipe,
+      target: p.target, terkumpul: p.terkumpul, icon: p.icon,
+    })),
+    DonaturTetap: donaturTetapRows,
+    DonaturBulanIni: donaturBulanIniRows,
+    Gallery: (data.gallery || []).map((g) => ({ id: g.id, src: g.src, caption: g.caption })),
+    Santri: [data.santri || {}],
+    LaporanBulanan: (data.laporanBulanan || []).map((l) => ({
       id: l.id, periodeKey: l.periodeKey, periodeLabel: l.periodeLabel, projectId: l.projectId,
       projectNama: l.projectNama, totalTerkumpul: l.totalTerkumpul, target: l.target,
       donaturTetapJSON: JSON.stringify(l.donaturTetap || []),
       donaturBulanIniJSON: JSON.stringify(l.donaturBulanIni || []),
-    }))
-  );
+    })),
+    Meta: [
+      {
+        operasionalPeriode: data.operasionalPeriode || currentPeriodKey(),
+        donationLogJSON: JSON.stringify(data.donationLog || []),
+      },
+    ],
+  };
 
-  await rewriteSheet(doc, "Meta", SHEET_SCHEMAS.Meta, [
-    {
-      operasionalPeriode: data.operasionalPeriode || currentPeriodKey(),
-      donationLogJSON: JSON.stringify(data.donationLog || []),
-    },
-  ]);
+  await writeAllSheetsBatched(doc, dataByTitle);
 }
 
 /**
- * Reset otomatis Dukungan Operasional Bulanan tiap tanggal 1 — dijalankan
- * di server (bukan di browser klien manapun) supaya tidak butuh admin yang
- * sedang login untuk memicunya, dan hanya terjadi sekali per bulan meski
- * banyak orang membuka situs bersamaan.
+ * Reset otomatis bulanan tiap tanggal 1 — dijalankan di server (bukan di
+ * browser klien manapun) supaya tidak butuh admin yang sedang login untuk
+ * memicunya, dan hanya terjadi sekali per bulan meski banyak orang membuka
+ * situs bersamaan.
+ *
+ * Berlaku untuk SETIAP program bertipe "bulanan" (mis. Dukungan Operasional
+ * Bulanan) — progres kembali ke baseline donatur tetap, donatur non-rutin
+ * bulan itu diarsipkan ke LaporanBulanan lalu dikosongkan.
+ *
+ * Program bertipe "sekali" (mis. Program Keamanan — Pemagaran Keliling)
+ * TIDAK PERNAH ikut direset — progresnya terus rollover apa adanya sampai
+ * mencapai 100% dari target, berapa lama pun itu berjalan.
  */
 function applyMonthlyResetIfNeeded(data) {
   const nowKey = currentPeriodKey();
   const storedKey = data.operasionalPeriode || nowKey;
   if (nowKey === storedKey) return { data, changed: false };
 
-  const opProject = (data.projects || []).find((p) => p.slug === "operasional");
   let donationLog = data.donationLog || [];
   let laporanBulanan = data.laporanBulanan || [];
-  let newBaseline = 0;
 
-  if (opProject) {
-    const tetapTotal = (opProject.donaturTetap || []).reduce((s, d) => s + d.jumlah, 0);
+  const projects = (data.projects || []).map((p) => {
+    if (p.tipe !== "bulanan") return p; // proyek sekali jalan: dibiarkan rollover, tidak disentuh
+
+    const tetapTotal = (p.donaturTetap || []).reduce((s, d) => s + d.jumlah, 0);
+
     donationLog = [
       ...donationLog,
-      { id: uid("d"), bulan: periodLabel(storedKey).slice(0, 3), jumlah: opProject.terkumpul },
+      { id: uid("d"), bulan: periodLabel(storedKey).slice(0, 3), jumlah: p.terkumpul, projectId: p.id },
     ].slice(-8);
 
     laporanBulanan = [
@@ -306,22 +346,18 @@ function applyMonthlyResetIfNeeded(data) {
         id: uid("lap"),
         periodeKey: storedKey,
         periodeLabel: periodLabel(storedKey),
-        projectId: opProject.id,
-        projectNama: opProject.nama,
-        totalTerkumpul: opProject.terkumpul,
-        target: opProject.target,
-        donaturTetap: (opProject.donaturTetap || []).map((d) => ({ nama: d.nama, jumlah: d.jumlah })),
-        donaturBulanIni: (opProject.donatur || []).map((d) => ({ nama: d.nama, jumlah: d.jumlah, tanggal: d.tanggal })),
+        projectId: p.id,
+        projectNama: p.nama,
+        totalTerkumpul: p.terkumpul,
+        target: p.target,
+        donaturTetap: (p.donaturTetap || []).map((d) => ({ nama: d.nama, jumlah: d.jumlah })),
+        donaturBulanIni: (p.donatur || []).map((d) => ({ nama: d.nama, jumlah: d.jumlah, tanggal: d.tanggal })),
       },
       ...laporanBulanan,
     ].slice(0, 24);
 
-    newBaseline = tetapTotal;
-  }
-
-  const projects = (data.projects || []).map((p) =>
-    p.slug === "operasional" ? { ...p, terkumpul: newBaseline, donatur: [] } : p
-  );
+    return { ...p, terkumpul: tetapTotal, donatur: [] };
+  });
 
   return { data: { ...data, projects, donationLog, laporanBulanan, operasionalPeriode: nowKey }, changed: true };
 }
