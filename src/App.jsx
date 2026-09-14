@@ -49,7 +49,7 @@ function IconTiktok({ size = 18, color = "currentColor" }) {
    IMAGE ASSETS (base64, derived from the yayasan's own photos)
    ============================================================ */
 const IMAGES = {
-  logo: "/images/logo.png",
+  logo: "/images/logo.svg",
   gate: "/images/gate.jpg",
   hero_building: "/images/hero_building.jpg",
   musholla: "/images/musholla.jpg",
