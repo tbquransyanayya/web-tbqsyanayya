@@ -1,0 +1,68 @@
+{
+  "days": [
+    {
+      "date": "2026-09-15",
+      "type": "feed",
+      "format": "single",
+      "caption": "Kenalan yuk sama TBQ Syanayya — tempat anak-anak belajar mencintai Al-Qur'an sejak dini. Yuk mulai perjalanan menghafal bareng kami! 🌿",
+      "slides": 1,
+      "images": "https://picsum.photos/seed/tbq01/800/1000"
+    },
+    {
+      "date": "2026-09-16",
+      "type": "story",
+      "format": "multipage",
+      "caption": "3 tips supaya hafalan anak lebih lengket, dari ustadzah pengajar tahfizh TBQ Syanayya.",
+      "slides": 3,
+      "images": ""
+    },
+    {
+      "date": "2026-09-17",
+      "type": "feed",
+      "format": "carousel",
+      "caption": "4 program belajar di TBQ Syanayya — geser buat lihat program mana yang paling cocok buat si kecil.",
+      "slides": 4,
+      "images": "https://picsum.photos/seed/tbq02/800/1000,https://picsum.photos/seed/tbq03/800/1000,https://picsum.photos/seed/tbq04/800/1000,https://picsum.photos/seed/tbq05/800/1000"
+    },
+    {
+      "date": "2026-09-17",
+      "type": "story",
+      "format": "single",
+      "caption": "Reminder: pendaftaran gelombang baru dibuka sampai akhir bulan ini, buruan daftar sebelum kuota penuh!",
+      "slides": 1,
+      "images": ""
+    },
+    {
+      "date": "2026-09-18",
+      "type": "story",
+      "format": "single",
+      "caption": "Progress hafalan santri minggu ini — alhamdulillah 12 juz baru selesai disetorkan!",
+      "slides": 1,
+      "images": ""
+    },
+    {
+      "date": "2026-09-19",
+      "type": "feed",
+      "format": "single",
+      "caption": "\"Anak saya jadi lebih semangat ngaji di rumah sejak ikut TBQ Syanayya.\" — Testimoni Bunda Sarah, wali santri kelas Iqra.",
+      "slides": 1,
+      "images": "https://picsum.photos/seed/tbq06/800/1000"
+    },
+    {
+      "date": "2026-09-20",
+      "type": "story",
+      "format": "multipage",
+      "caption": "Behind the scenes: keseharian ustadz/ustadzah menyiapkan kelas pagi ini.",
+      "slides": 2,
+      "images": ""
+    },
+    {
+      "date": "2026-09-21",
+      "type": "feed",
+      "format": "carousel",
+      "caption": "Campaign Wakaf Al-Qur'an — bantu sediakan mushaf untuk santri yang belum punya. Geser untuk lihat progress donasi.",
+      "slides": 3,
+      "images": ""
+    }
+  ]
+}

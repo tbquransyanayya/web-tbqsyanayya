@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jadwal Konten Mingguan — TBQ Syanayya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --emerald-deep:#0F3B3A;
+    --emerald-mid:#1B5E52;
+    --emerald-soft:#DCE9E0;
+    --gold:#C79A2B;
+    --gold-soft:#EFDFA8;
+    --sand:#F3EBD8;
+    --cream:#FBF8F1;
+    --ink:#1B2420;
+    --ink-soft:#5B6A62;
+    --coral:#B85C38;
+    --coral-soft:#FBEEE7;
+    --line:#E3DCC8;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+
+  /* ---------- header ---------- */
+  .topbar{
+    background:var(--emerald-deep);color:var(--cream);
+    padding:28px 20px 32px;
+  }
+  .topbar-inner{max-width:1100px;margin:0 auto;}
+  .eyebrow{font-family:'Sora',sans-serif;font-size:13px;color:var(--gold-soft);font-weight:600;}
+  .topbar h1{font-size:26px;font-weight:600;margin-top:6px;line-height:1.25;}
+  .week-nav{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin-top:22px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    border-radius:12px;padding:10px 14px;max-width:420px;
+  }
+  .week-nav button{
+    background:transparent;border:1px solid rgba(255,255,255,.3);color:var(--cream);
+    width:34px;height:34px;border-radius:8px;font-size:16px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .week-nav button:hover{background:rgba(255,255,255,.12);}
+  .week-nav button:focus-visible{outline:2px solid var(--gold-soft);outline-offset:2px;}
+  .week-label{text-align:center;flex:1;}
+  .week-label .range{font-family:'Sora',sans-serif;font-weight:700;font-size:15px;}
+  .week-tag{
+    display:inline-block;margin-top:4px;font-size:11px;font-weight:600;
+    color:var(--emerald-deep);background:var(--gold-soft);
+    padding:2px 9px;border-radius:20px;
+  }
+
+  /* ---------- day sections ---------- */
+  main{max-width:1100px;margin:0 auto;padding:26px 20px 60px;}
+  .day-section{margin-bottom:34px;}
+  .day-section-head{
+    display:flex;align-items:baseline;gap:10px;margin-bottom:14px;
+    padding-bottom:10px;border-bottom:2px solid var(--emerald-soft);
+  }
+  .day-section-head .dow{
+    font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--ink-soft);
+    text-transform:uppercase;letter-spacing:.03em;
+  }
+  .day-section-head h2{font-size:19px;font-weight:600;color:var(--emerald-deep);}
+  .day-section-head .day-count{
+    margin-left:auto;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--ink-soft);
+    background:var(--sand);padding:3px 10px;border-radius:20px;
+  }
+  .day-items{
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));gap:20px;
+  }
+  .day-tile{
+    background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    cursor:pointer;text-align:left;padding:0;font-family:inherit;color:inherit;
+    display:flex;flex-direction:column;transition:box-shadow .15s ease, transform .15s ease;
+  }
+  .day-tile:hover{box-shadow:0 10px 24px rgba(15,59,58,.14);transform:translateY(-3px);}
+  .day-tile:focus-visible{outline:2px solid var(--emerald-mid);outline-offset:3px;}
+
+  .tile-thumb{position:relative;background:var(--emerald-mid);}
+  .tile-thumb.ratio-feed{aspect-ratio:4/5;}
+  .tile-thumb.ratio-story{aspect-ratio:9/16;}
+  .tile-thumb-fill{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:6px;color:#fff;font-family:'Sora',sans-serif;
+    background:linear-gradient(160deg, var(--emerald-mid), var(--emerald-deep));
+  }
+  .tile-thumb-fill.tone-story{background:linear-gradient(160deg, var(--coral), #7c3f22);}
+  .tile-thumb-fill .big-no{font-size:34px;font-weight:800;line-height:1;}
+  .tile-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;}
+  .tile-count{
+    position:absolute;top:10px;right:10px;background:rgba(0,0,0,.4);color:#fff;
+    font-family:'Sora',sans-serif;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;z-index:2;
+  }
+  .tile-status{
+    position:absolute;bottom:10px;left:10px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;
+    padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;z-index:2;
+  }
+  .tile-status.approved{background:#E7F3EC;color:#1B5E3A;}
+  .tile-status.revision{background:var(--coral-soft);color:var(--coral);}
+  .tile-status .sdot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+  .tile-info{padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;}
+  .tile-badges{display:flex;gap:6px;margin:8px 0 10px;flex-wrap:wrap;}
+  .badge{font-family:'Sora',sans-serif;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+  .badge.feed{background:var(--emerald-soft);color:var(--emerald-deep);}
+  .badge.story{background:var(--gold-soft);color:#6B5211;}
+  .badge.format{background:var(--sand);color:var(--ink-soft);font-weight:600;}
+  .tile-caption{
+    font-size:13px;line-height:1.5;color:var(--ink-soft);margin:0;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .tile-empty{padding:16px;color:var(--ink-soft);font-size:13px;font-style:italic;}
+
+  /* ---------- fullscreen modal ---------- */
+  .modal-backdrop{display:none;position:fixed;inset:0;background:var(--cream);z-index:50;overflow-y:auto;}
+  .modal-backdrop.open{display:block;}
+  .modal-topbar{
+    position:sticky;top:0;background:var(--emerald-deep);color:var(--cream);
+    padding:16px 18px;display:flex;align-items:center;gap:14px;z-index:2;
+  }
+  .modal-back{
+    background:transparent;border:1px solid rgba(255,255,255,.35);color:var(--cream);
+    border-radius:8px;padding:8px 14px;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer;
+  }
+  .modal-back:hover{background:rgba(255,255,255,.12);}
+  .modal-date-label{font-family:'Fraunces',serif;font-weight:600;font-size:17px;}
+  .modal-date-label .dow{display:block;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--gold-soft);text-transform:capitalize;}
+
+  .modal-body{max-width:640px;margin:0 auto;padding:26px 20px 60px;}
+  .modal-badges{display:flex;gap:8px;margin-bottom:18px;}
+
+  .modal-preview{margin:0 auto 8px;max-width:360px;}
+  .preview-frame{
+    position:relative;border-radius:14px;overflow:hidden;background:var(--emerald-mid);
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    touch-action:pan-y;user-select:none;-webkit-user-select:none;
+  }
+  .preview-frame.ratio-feed{aspect-ratio:4/5;}
+  .preview-frame.ratio-story{aspect-ratio:9/16;}
+  .preview-slide{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:6px;text-align:center;padding:8px;
+    background:linear-gradient(160deg, var(--emerald-mid), var(--emerald-deep));
+    font-family:'Sora',sans-serif;
+  }
+  .preview-slide.tone-story{background:linear-gradient(160deg, var(--coral), #7c3f22);}
+  .preview-slide .slide-no{font-size:40px;font-weight:800;line-height:1;}
+  .preview-slide .slide-label{font-size:12px;opacity:.85;margin-top:2px;}
+  .slide-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;}
+  .swipe-hint{text-align:center;font-family:'Sora',sans-serif;font-size:11px;color:var(--ink-soft);margin:8px 0 14px;}
+  .preview-nav{display:flex;align-items:center;justify-content:space-between;margin-top:10px;gap:8px;}
+  .preview-nav button{
+    background:var(--sand);border:none;width:30px;height:30px;border-radius:8px;
+    cursor:pointer;font-size:15px;color:var(--emerald-deep);flex-shrink:0;
+  }
+  .preview-nav button:disabled{opacity:.35;cursor:default;}
+  .dots{display:flex;gap:5px;justify-content:center;flex:1;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--line);}
+  .dot.active{background:var(--emerald-deep);}
+
+  .caption-label{font-family:'Sora',sans-serif;font-size:10.5px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:6px;}
+  .caption{font-size:15px;line-height:1.6;color:var(--ink);margin:0 0 26px;}
+
+  /* ---------- review controls ---------- */
+  .review-actions{display:flex;gap:10px;}
+  .btn{
+    font-family:'Sora',sans-serif;font-size:14px;font-weight:700;border-radius:10px;
+    padding:12px 16px;border:1px solid transparent;cursor:pointer;flex:1;
+  }
+  .btn-approve{background:var(--emerald-deep);color:#fff;}
+  .btn-approve:hover{background:var(--emerald-mid);}
+  .btn-revise{background:transparent;color:var(--coral);border-color:var(--coral);}
+  .btn-revise:hover{background:var(--coral-soft);}
+  .btn:focus-visible{outline:2px solid var(--emerald-mid);outline-offset:2px;}
+
+  .status{
+    display:flex;align-items:center;gap:8px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;
+    padding:14px 16px;border-radius:12px;
+  }
+  .status.approved{background:#E7F3EC;color:#1B5E3A;}
+  .status.approved .dotstat{width:7px;height:7px;border-radius:50%;background:#2E8B57;}
+  .status button.reset{
+    margin-left:auto;background:none;border:none;font-size:12px;color:var(--ink-soft);
+    text-decoration:underline;cursor:pointer;font-weight:600;
+  }
+
+  .revise-box textarea{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+    font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;resize:vertical;min-height:90px;
+    margin-top:10px;
+  }
+  .revise-box .revise-buttons{display:flex;gap:10px;margin-top:10px;}
+  .revise-box .btn-cancel{background:transparent;color:var(--ink-soft);border-color:var(--line);flex:0 0 auto;padding:12px 16px;}
+  .revise-box .btn-submit{background:var(--coral);color:#fff;flex:0 0 auto;}
+  .revise-box .btn-submit:hover{background:#a04e2f;}
+
+  .status.needs-revision{background:var(--coral-soft);color:var(--coral);align-items:flex-start;flex-direction:column;gap:6px;}
+  .status.needs-revision .top{display:flex;align-items:center;gap:8px;width:100%;}
+  .status.needs-revision .note-text{font-weight:500;color:var(--ink);font-size:13.5px;}
+
+  footer{max-width:1100px;margin:0 auto;padding:0 20px 50px;color:var(--ink-soft);font-size:12px;line-height:1.6;}
+
+  @media(max-width:480px){
+    .modal-topbar{padding:14px 16px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <span class="eyebrow">Review Konten</span>
+    <h1>Jadwal Konten Mingguan</h1>
+    <div class="week-nav">
+      <button id="prevWeek" aria-label="Minggu sebelumnya">‹</button>
+      <div class="week-label">
+        <div class="range" id="weekRange">Memuat…</div>
+        <span class="week-tag" id="weekTag" style="display:none;">Minggu ini</span>
+      </div>
+      <button id="nextWeek" aria-label="Minggu berikutnya">›</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div id="dayList"><!-- day sections injected here --></div>
+</main>
+
+<footer>
+  Konten diambil otomatis dari <code>content.json</code>. Ganti isinya kapan saja tanpa perlu deploy ulang situs — lihat README di paket ini untuk cara menyambungkan ke Google Sheets. Satu tanggal boleh punya lebih dari satu baris konten (misalnya feed dan story di hari yang sama) — keduanya akan tampil berdampingan.
+</footer>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-topbar">
+    <button class="modal-back" id="modalClose">‹ Kembali</button>
+    <div class="modal-date-label" id="modalDateLabel"></div>
+  </div>
+  <div class="modal-body" id="modalBody"></div>
+</div>
+
+<!-- Static forms so Netlify detects them at build time (kept hidden, submitted via fetch) -->
+<form name="revisi-konten" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input type="hidden" name="form-name" value="revisi-konten">
+  <input name="bot-field">
+  <input type="text" name="tanggal">
+  <input type="text" name="jenis">
+  <textarea name="catatan"></textarea>
+</form>
+<form name="approval-konten" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input type="hidden" name="form-name" value="approval-konten">
+  <input name="bot-field">
+  <input type="text" name="tanggal">
+  <input type="text" name="jenis">
+</form>
+
+<script>
+/* =====================================================================
+   SUMBER DATA
+   Default: mengambil dari content.json (file statis di folder yang sama).
+   Untuk konten yang bisa diedit tanpa deploy ulang sama sekali, ganti
+   DATA_URL ke Google Sheet yang di-publish, misalnya lewat:
+     https://opensheet.elk.sh/<SPREADSHEET_ID>/<NAMA_SHEET>
+   Format tiap baris/objek harus tetap: date, type, format, caption, slides
+
+   SATU TANGGAL BOLEH LEBIH DARI SATU BARIS (misal feed + story hari yang
+   sama) — tinggal tambah baris baru dengan "date" yang sama, jenis (type)
+   beda. Halaman otomatis menampilkan keduanya berdampingan di grid.
+   ===================================================================== */
+  const DATA_URL = 'https://opensheet.elk.sh/1pvGucVA6YUSo2YnB6W8ORhsvgHSV-LJrgFcVl0WIw60/Sheet1';
+
+  // Titik jangkar: tanggal mulai minggu pertama yang ditampilkan.
+  const ANCHOR_DATE = new Date('2026-09-15T00:00:00');
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  const DOW = ['Minggu','Senin','Selasa','Rabu','Kamis',"Jum'at",'Sabtu'];
+  const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+  function isoDate(d){
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function currentWeekIndex(){
+    const today = new Date(); today.setHours(0,0,0,0);
+    return Math.floor((today - ANCHOR_DATE) / (7 * DAY_MS));
+  }
+
+  let allData = { days: [] };
+  let viewWeekIndex = currentWeekIndex();
+  let openKey = null;
+
+  function weekDates(weekIndex){
+    const start = new Date(ANCHOR_DATE.getTime() + weekIndex * 7 * DAY_MS);
+    return Array.from({length:7}, (_,i) => new Date(start.getTime() + i * DAY_MS));
+  }
+
+  function formatRange(dates){
+    const a = dates[0], b = dates[6];
+    const sameMonth = a.getMonth() === b.getMonth();
+    const left = a.getDate() + (sameMonth ? '' : ' ' + MONTHS[a.getMonth()]);
+    const right = b.getDate() + ' ' + MONTHS[b.getMonth()] + ' ' + b.getFullYear();
+    return left + ' – ' + right;
+  }
+
+  // Setiap entry diberi _key unik (date::type::urutan) supaya dua entry
+  // dengan tanggal sama (misal feed + story) tetap bisa dibedakan untuk
+  // status approve/revisi dan modal detail. Juga mem-parsing kolom
+  // "images" (URL dipisah koma) jadi array.
+  function prepareData(data){
+    const counts = {};
+    (data.days || []).forEach(entry => {
+      const base = entry.date + '::' + entry.type;
+      counts[base] = (counts[base] || 0) + 1;
+      entry._key = base + '::' + (counts[base] - 1);
+      entry.images = entry.images
+        ? String(entry.images).split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+    });
+    return data;
+  }
+
+  function entriesForDate(dateStr){
+    return allData.days.filter(d => d.date === dateStr);
+  }
+  function findByKey(key){
+    return allData.days.find(d => d._key === key);
+  }
+
+  function slideTone(type){ return type === 'story' ? 'tone-story' : ''; }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+  }
+
+  // ---------- status bersama tim (bukan localStorage) ----------
+  // Dibaca & ditulis ke Google Sheet lewat Apps Script Web App, supaya semua
+  // orang yang buka halaman ini melihat status approve/revisi yang sama.
+  // Cara setup STATUS_URL ada di README. Kalau dikosongkan, halaman tetap
+  // jalan tapi status HANYA tersimpan di sesi browser ini saja (tidak
+  // sinkron ke tim) — akan muncul peringatan kecil di bagian atas halaman.
+  const STATUS_URL = 'https://script.google.com/macros/s/AKfycby2ilnadvJ2qEfhIJviEcZLrGPUkqaInbF0LUab7gO-R0m-cBzIuKrGOjb99h1x_pY/exec';
+
+  let statusStore = {};
+
+  function loadApproval(key){
+    return statusStore[key] || null;
+  }
+  function saveApproval(key, data){
+    statusStore[key] = data;
+    syncStatus(key, data);
+  }
+  function clearApproval(key){
+    delete statusStore[key];
+    syncStatus(key, {status:'', note:''});
+  }
+  function syncStatus(key, data){
+    if(!STATUS_URL) return;
+    // Content-Type text/plain sengaja dipakai supaya browser tidak mengirim
+    // preflight OPTIONS request (Apps Script Web App tidak menanganinya).
+    fetch(STATUS_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify({ key, status: data.status || '', note: data.note || '' })
+    }).catch(() => { /* offline — status lokal tetap terlihat sampai koneksi kembali */ });
+  }
+  function submitNetlifyForm(formName, fields){
+    const body = new URLSearchParams({ 'form-name': formName, ...fields }).toString();
+    fetch('/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body })
+      .catch(() => { /* offline atau bukan di Netlify — notifikasi saja, tidak wajib */ });
+  }
+
+  // ---------- day sections ----------
+  function renderTile(entry){
+    const ratioClass = entry.type === 'story' ? 'ratio-story' : 'ratio-feed';
+    const tone = slideTone(entry.type);
+    const label = entry.type === 'feed' ? 'Feed' : 'Story';
+    const formatLabel = {single:'Single', carousel:'Carousel', multipage:'Multipage'}[entry.format] || entry.format;
+    const saved = loadApproval(entry._key);
+    let statusChip = '';
+    if(saved && saved.status === 'approved'){
+      statusChip = `<span class="tile-status approved"><span class="sdot"></span>Siap posting</span>`;
+    }else if(saved && saved.status === 'revision'){
+      statusChip = `<span class="tile-status revision"><span class="sdot"></span>Perlu revisi</span>`;
+    }
+
+    return `<button type="button" class="day-tile" data-open="${entry._key}">
+      <div class="tile-thumb ${ratioClass}">
+        <div class="tile-thumb-fill ${tone}">
+          <span class="big-no">1</span>
+        </div>
+        ${entry.images[0] ? `<img class="tile-img" src="${escapeHtml(entry.images[0])}" alt="" loading="lazy" onerror="this.remove()">` : ''}
+        ${entry.slides > 1 ? `<span class="tile-count">${label} 1/${entry.slides}</span>` : ''}
+        ${statusChip}
+      </div>
+      <div class="tile-info">
+        <div class="tile-badges">
+          <span class="badge ${entry.type}">${label}</span>
+          <span class="badge format">${formatLabel}</span>
+        </div>
+        <p class="tile-caption">${escapeHtml(entry.caption)}</p>
+      </div>
+    </button>`;
+  }
+
+  function renderDaySection(date){
+    const dateStr = isoDate(date);
+    const entries = entriesForDate(dateStr);
+    const dow = DOW[date.getDay()];
+    const dateLabel = date.getDate() + ' ' + MONTHS[date.getMonth()];
+
+    const countLabel = entries.length === 0 ? '' :
+      `<span class="day-count">${entries.length} konten</span>`;
+
+    const body = entries.length === 0
+      ? `<p class="tile-empty">Belum ada konten diisi untuk tanggal ini.</p>`
+      : `<div class="day-items">${entries.map(renderTile).join('')}</div>`;
+
+    return `<section class="day-section">
+      <div class="day-section-head">
+        <span class="dow">${dow}</span>
+        <h2>${dateLabel}</h2>
+        ${countLabel}
+      </div>
+      ${body}
+    </section>`;
+  }
+
+  function renderGrid(){
+    const dates = weekDates(viewWeekIndex);
+    document.getElementById('weekRange').textContent = formatRange(dates);
+    document.getElementById('weekTag').style.display = (viewWeekIndex === currentWeekIndex()) ? 'inline-block' : 'none';
+    document.getElementById('dayList').innerHTML = dates.map(renderDaySection).join('');
+  }
+
+  // ---------- fullscreen modal ----------
+  function renderPreview(entry, cardId){
+    const type = entry.type;
+    const ratioClass = type === 'story' ? 'ratio-story' : 'ratio-feed';
+    const slides = entry.slides || 1;
+    const label = type === 'feed' ? 'Feed' : 'Story';
+    let frame = `<div class="preview-frame ${ratioClass}" data-card="${cardId}" data-count="${slides}">`;
+    for(let i=0;i<slides;i++){
+      const imgUrl = entry.images[i];
+      frame += `<div class="preview-slide ${slideTone(type)}" data-idx="${i}" style="${i===0?'':'display:none;'}">
+        ${imgUrl ? `<img class="slide-img" src="${escapeHtml(imgUrl)}" alt="" onerror="this.remove()">` : ''}
+        <span class="slide-no">${i+1}</span>
+        <span class="slide-label">${label} ${slides>1 ? (i+1)+' / '+slides : ''}</span>
+      </div>`;
+    }
+    frame += `</div>`;
+    let block = `<div class="modal-preview">${frame}</div>`;
+    if(slides > 1){
+      block += `<div class="swipe-hint">Geser kiri/kanan pada gambar, atau pakai tombol</div>`;
+      block += `<div class="preview-nav">
+        <button class="prev-slide" data-card="${cardId}" aria-label="Sebelumnya" disabled>‹</button>
+        <div class="dots">${Array.from({length:slides}).map((_,i)=>`<span class="dot ${i===0?'active':''}"></span>`).join('')}</div>
+        <button class="next-slide" data-card="${cardId}" aria-label="Berikutnya">›</button>
+      </div>`;
+    }
+    return `<div class="preview-wrap" data-wrap="${cardId}">${block}</div>`;
+  }
+
+  function renderReviewBlock(key, entryType){
+    const saved = loadApproval(key);
+    if(saved && saved.status === 'approved'){
+      return `<div class="review" data-key="${key}" data-type="${entryType}">
+        <div class="status approved">
+          <span class="dotstat"></span> Siap posting
+          <button class="reset" data-action="reset">batalkan</button>
+        </div>
+      </div>`;
+    }
+    if(saved && saved.status === 'revision'){
+      return `<div class="review" data-key="${key}" data-type="${entryType}">
+        <div class="status needs-revision">
+          <div class="top">Perlu revisi
+            <button class="reset" data-action="reset">batalkan</button>
+          </div>
+          <div class="note-text">${escapeHtml(saved.note)}</div>
+        </div>
+      </div>`;
+    }
+    return `<div class="review" data-key="${key}" data-type="${entryType}">
+      <div class="review-actions">
+        <button class="btn btn-approve" data-action="approve">Approve</button>
+        <button class="btn btn-revise" data-action="show-revise">Tidak, ada revisi</button>
+      </div>
+      <div class="revise-box" style="display:none;">
+        <textarea placeholder="Tulis apa yang perlu diganti…"></textarea>
+        <div class="revise-buttons">
+          <button class="btn btn-cancel" data-action="cancel-revise">Batal</button>
+          <button class="btn btn-submit" data-action="submit-revise">Kirim Revisi</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderModalBody(key){
+    const entry = findByKey(key);
+    const formatLabel = {single:'Single', carousel:'Carousel', multipage:'Multipage'}[entry.format] || entry.format;
+    const label = entry.type === 'feed' ? 'Feed' : 'Story';
+    document.getElementById('modalBody').innerHTML = `
+      <div class="modal-badges">
+        <span class="badge ${entry.type}">${label}</span>
+        <span class="badge format">${formatLabel}</span>
+      </div>
+      ${renderPreview(entry, 'modal')}
+      <span class="caption-label">Caption</span>
+      <p class="caption">${escapeHtml(entry.caption)}</p>
+      ${renderReviewBlock(key, entry.type)}
+    `;
+  }
+
+  function openModal(key){
+    const entry = findByKey(key);
+    const date = new Date(entry.date + 'T00:00:00');
+    const dow = DOW[date.getDay()];
+    const dateLabel = date.getDate() + ' ' + MONTHS[date.getMonth()] + ' ' + date.getFullYear();
+    document.getElementById('modalDateLabel').innerHTML = `<span class="dow">${dow}</span>${dateLabel}`;
+    openKey = key;
+    renderModalBody(key);
+    document.getElementById('modalBackdrop').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('modalBackdrop').scrollTop = 0;
+  }
+
+  function closeModal(){
+    document.getElementById('modalBackdrop').classList.remove('open');
+    document.body.style.overflow = '';
+    openKey = null;
+    renderGrid();
+  }
+
+  // ---------- slide navigation (shared by buttons + swipe) ----------
+  function stepSlide(cardId, direction){
+    const frame = document.querySelector(`.preview-frame[data-card="${cardId}"]`);
+    if(!frame) return;
+    const wrap = frame.closest('.preview-wrap');
+    if(!wrap) return;
+    const count = parseInt(frame.dataset.count, 10);
+    const slides = frame.querySelectorAll('.preview-slide');
+    const dots = wrap.querySelectorAll('.dot');
+    const current = Array.from(slides).findIndex(s => s.style.display !== 'none');
+    if(current === -1) return;
+    const next = Math.max(0, Math.min(count - 1, current + direction));
+    if(next === current) return;
+    slides[current].style.display = 'none';
+    if(dots[current]) dots[current].classList.remove('active');
+    slides[next].style.display = '';
+    if(dots[next]) dots[next].classList.add('active');
+    const nav = wrap.querySelector('.preview-nav');
+    if(nav){
+      nav.querySelector('.prev-slide').disabled = next === 0;
+      nav.querySelector('.next-slide').disabled = next === count - 1;
+    }
+  }
+
+  // ---------- events ----------
+  document.getElementById('prevWeek').addEventListener('click', () => { viewWeekIndex--; renderGrid(); });
+  document.getElementById('nextWeek').addEventListener('click', () => { viewWeekIndex++; renderGrid(); });
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e) => {
+    if(document.getElementById('modalBackdrop').classList.contains('open')){
+      if(e.key === 'Escape') closeModal();
+      if(e.key === 'ArrowLeft' && openKey) stepSlide('modal', -1);
+      if(e.key === 'ArrowRight' && openKey) stepSlide('modal', 1);
+    }
+  });
+
+  document.getElementById('dayList').addEventListener('click', (e) => {
+    const tile = e.target.closest('[data-open]');
+    if(tile) openModal(tile.dataset.open);
+  });
+
+  document.getElementById('modalBody').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const action = btn.dataset.action;
+
+    if(btn.classList.contains('prev-slide')){ stepSlide(btn.dataset.card, -1); return; }
+    if(btn.classList.contains('next-slide')){ stepSlide(btn.dataset.card, 1); return; }
+
+    if(!action || !openKey) return;
+    const key = openKey;
+    const reviewEl = btn.closest('.review');
+    const type = reviewEl.dataset.type;
+
+    if(action === 'approve'){
+      saveApproval(key, {status:'approved', ts: Date.now()});
+      submitNetlifyForm('approval-konten', { tanggal: key, jenis: type });
+      renderModalBody(key);
+    }
+    if(action === 'show-revise'){
+      reviewEl.querySelector('.revise-box').style.display = 'block';
+      reviewEl.querySelector('.review-actions').style.display = 'none';
+    }
+    if(action === 'cancel-revise'){
+      reviewEl.querySelector('.revise-box').style.display = 'none';
+      reviewEl.querySelector('.review-actions').style.display = 'flex';
+    }
+    if(action === 'submit-revise'){
+      const note = reviewEl.querySelector('textarea').value.trim();
+      if(!note){ reviewEl.querySelector('textarea').focus(); return; }
+      saveApproval(key, {status:'revision', note, ts: Date.now()});
+      submitNetlifyForm('revisi-konten', { tanggal: key, jenis: type, catatan: note });
+      renderModalBody(key);
+    }
+    if(action === 'reset'){
+      clearApproval(key);
+      renderModalBody(key);
+    }
+  });
+
+  // swipe left/right on the preview image itself (touch devices)
+  let touchStartX = null, touchStartY = null, touchCardId = null;
+  document.getElementById('modalBody').addEventListener('touchstart', (e) => {
+    const frame = e.target.closest('.preview-frame');
+    if(!frame) return;
+    touchCardId = frame.dataset.card;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, {passive:true});
+
+  document.getElementById('modalBody').addEventListener('touchend', (e) => {
+    if(touchStartX === null || !touchCardId) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){
+      stepSlide(touchCardId, dx < 0 ? 1 : -1); // geser kiri = next, geser kanan = prev
+    }
+    touchStartX = null; touchStartY = null; touchCardId = null;
+  }, {passive:true});
+
+  // ---------- init ----------
+  async function init(){
+    if(!STATUS_URL){
+      const warn = document.createElement('div');
+      warn.style.cssText = 'background:var(--coral-soft);color:var(--coral);font-family:"Sora",sans-serif;font-size:12px;font-weight:600;text-align:center;padding:8px;';
+      warn.textContent = 'STATUS_URL belum diisi — status approve/revisi hanya tersimpan di sesi browser ini, belum sinkron ke tim. Lihat README.';
+      document.body.insertBefore(warn, document.body.firstChild);
+    }
+
+    try{
+      const res = await fetch(DATA_URL);
+      const data = await res.json();
+      allData = prepareData(data);
+    }catch(e){
+      document.getElementById('dayList').innerHTML =
+        '<p class="tile-empty">Gagal memuat content.json — pastikan file ini ada di folder yang sama dan halaman dibuka lewat server (bukan dibuka langsung dari file).</p>';
+      return;
+    }
+
+    if(STATUS_URL){
+      try{
+        const res = await fetch(STATUS_URL);
+        statusStore = await res.json();
+      }catch(e){
+        // gagal ambil status bersama (mis. offline) — lanjut dengan status kosong,
+        // approve/revisi baru tetap akan dikirim ke server begitu koneksi normal lagi
+      }
+    }
+
+    renderGrid();
+  }
+  init();
+</script>
+
+</body>
+</html>
