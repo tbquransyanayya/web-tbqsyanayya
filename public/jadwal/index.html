@@ -270,7 +270,7 @@
    sama) — tinggal tambah baris baru dengan "date" yang sama, jenis (type)
    beda. Halaman otomatis menampilkan keduanya berdampingan di grid.
    ===================================================================== */
-  const DATA_URL = 'https://opensheet.elk.sh/1pvGucVA6YUSo2YnB6W8ORhsvgHSV-LJrgFcVl0WIw60/Sheet1';
+  const DATA_URL = 'content.json';
 
   // Titik jangkar: tanggal mulai minggu pertama yang ditampilkan.
   const ANCHOR_DATE = new Date('2026-09-15T00:00:00');
@@ -281,6 +281,17 @@
 
   function isoDate(d){
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  // Sheets kadang mengembalikan tanggal dalam format selain YYYY-MM-DD
+  // (mis. "9/15/2026") kalau kolomnya bertipe Date, bukan Plain text.
+  // Ini usaha terbaik menormalkan ke YYYY-MM-DD; tetap paling aman format
+  // kolom "date" di Sheet sebagai Plain text dan ketik "2026-09-15" langsung.
+  function normalizeDate(raw){
+    const s = String(raw || '').trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s);
+    if(!isNaN(d)) return isoDate(d);
+    return s;
   }
   function currentWeekIndex(){
     const today = new Date(); today.setHours(0,0,0,0);
@@ -311,11 +322,19 @@
   function prepareData(data){
     const counts = {};
     (data.days || []).forEach(entry => {
+      // toleransi nama kolom: sheet boleh pakai "image" (tunggal) atau "images"
+      const imagesRaw = entry.images || entry.image || '';
+      // toleransi tipe/tanggal dari Sheets yang kadang berupa angka/spasi ekstra
+      entry.date = normalizeDate(entry.date);
+      entry.type = String(entry.type || '').trim().toLowerCase();
+      entry.format = String(entry.format || '').trim().toLowerCase();
+      entry.slides = parseInt(entry.slides, 10) || 1;
+
       const base = entry.date + '::' + entry.type;
       counts[base] = (counts[base] || 0) + 1;
       entry._key = base + '::' + (counts[base] - 1);
-      entry.images = entry.images
-        ? String(entry.images).split(',').map(s => s.trim()).filter(Boolean)
+      entry.images = imagesRaw
+        ? String(imagesRaw).split(',').map(s => s.trim()).filter(Boolean)
         : [];
     });
     return data;
@@ -342,7 +361,7 @@
   // Cara setup STATUS_URL ada di README. Kalau dikosongkan, halaman tetap
   // jalan tapi status HANYA tersimpan di sesi browser ini saja (tidak
   // sinkron ke tim) — akan muncul peringatan kecil di bagian atas halaman.
-  const STATUS_URL = 'https://script.google.com/macros/s/AKfycby2ilnadvJ2qEfhIJviEcZLrGPUkqaInbF0LUab7gO-R0m-cBzIuKrGOjb99h1x_pY/exec';
+  const STATUS_URL = '';
 
   let statusStore = {};
 
@@ -646,11 +665,15 @@
 
     try{
       const res = await fetch(DATA_URL);
-      const data = await res.json();
+      const raw = await res.json();
+      // content.json berbentuk {"days":[...]}, tapi opensheet.elk.sh (dan
+      // kebanyakan API Google Sheet-ke-JSON lain) mengembalikan array baris
+      // polos [...] langsung — bungkus otomatis biar dua-duanya jalan.
+      const data = Array.isArray(raw) ? { days: raw } : raw;
       allData = prepareData(data);
     }catch(e){
       document.getElementById('dayList').innerHTML =
-        '<p class="tile-empty">Gagal memuat content.json — pastikan file ini ada di folder yang sama dan halaman dibuka lewat server (bukan dibuka langsung dari file).</p>';
+        '<p class="tile-empty">Gagal memuat konten — pastikan DATA_URL benar dan sheet/​file-nya bisa diakses publik.</p>';
       return;
     }
 
