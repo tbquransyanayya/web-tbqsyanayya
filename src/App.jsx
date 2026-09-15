@@ -5,7 +5,7 @@ import {
   TrendingUp, Sparkles, ArrowUpRight, MessageCircle, MapPin, Phone,
   BookOpenText, HeartHandshake, Building2, LayoutDashboard, ImagePlus,
   Landmark, GraduationCap, Info, Award, Download, RefreshCcw,
-  ExternalLink, CalendarCheck, Mail
+  ExternalLink, CalendarCheck, Mail, CalendarDays
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid
@@ -209,8 +209,8 @@ const BANK = {
   norek: "9114965480",
   atasNama: "TBQ SYANAYYA",
 };
-// Kontak pengurus untuk konfirmasi donasi/wakaf via WhatsApp — dipakai untuk
-// tombol konfirmasi, bagian "Transfer Langsung", dan Kontak di footer.
+// Kontak pengurus untuk konfirmasi infaq, shodaqoh & wakaf via WhatsApp —
+// dipakai untuk tombol konfirmasi, bagian "Transfer Langsung", dan Kontak di footer.
 const PENGURUS_KONTAK = [
   { id: 1, nama: "Salim Abu Hijroh", nomorLokal: "081213123466", nomor: "6281213123466" },
   { id: 2, nama: "Anggi Wicaksono", nomorLokal: "081332255855", nomor: "6281332255855" },
@@ -234,6 +234,10 @@ const SOSMED = {
   facebook: "https://facebook.com/tbqsyanayya",
   tiktok: "https://tiktok.com/@tbqsyanayya",
 };
+
+// Kalender Konten — dikelola di halaman terpisah (mis. tools kalender editorial),
+// diakses lewat panel admin. Bukan bagian dari data yang tersimpan di Sheets.
+const JADWAL_KONTEN_URL = "https://tbq-syanayya.netlify.app/jadwal/";
 
 /* ============================================================
    HELPERS
@@ -279,7 +283,7 @@ function uid(prefix) {
 
 function buildLaporanText(laporan) {
   const lines = [];
-  lines.push("LAPORAN DONASI BULANAN — TBQ SYANAYYA");
+  lines.push("LAPORAN INFAQ & SHODAQOH BULANAN — TBQ SYANAYYA");
   lines.push(laporan.projectNama);
   lines.push(`Periode: ${laporan.periodeLabel}`);
   lines.push("=".repeat(46));
@@ -319,7 +323,7 @@ function downloadLaporan(laporan) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `laporan-donasi-${laporan.periodeKey}.txt`;
+  a.download = `laporan-infaq-shodaqoh-${laporan.periodeKey}.txt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -598,7 +602,7 @@ function NavBar({ page, setPage, mobileOpen, setMobileOpen }) {
     { id: "fasilitas", label: "Fasilitas" },
     { id: "pengurus", label: "Pengurus" },
     { id: "lokasi", label: "Lokasi" },
-    { id: "donasi", label: "Donasi & Wakaf" },
+    { id: "donasi", label: "Infaq, Shodaqoh & Wakaf" },
   ];
   const go = (id) => {
     setMobileOpen(false);
@@ -667,7 +671,7 @@ function NavBar({ page, setPage, mobileOpen, setMobileOpen }) {
             </button>
           ))}
           <Button variant="dark" onClick={() => go("donasi")} style={{ marginLeft: 6 }}>
-            Berdonasi
+            Infaq & Shodaqoh
           </Button>
         </nav>
 
@@ -702,7 +706,7 @@ function NavBar({ page, setPage, mobileOpen, setMobileOpen }) {
             </button>
           ))}
           <Button variant="dark" onClick={() => go("donasi")} style={{ marginTop: 12, justifyContent: "center" }}>
-            Berdonasi
+            Infaq & Shodaqoh
           </Button>
         </div>
       )}
@@ -755,7 +759,7 @@ function Hero({ data, goDonasi }) {
             </p>
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               <Button variant="primary" icon={HeartHandshake} onClick={goDonasi}>
-                Salurkan Donasi & Wakaf
+                Salurkan Infaq, Shodaqoh & Wakaf
               </Button>
               <Button
                 variant="ghostLight"
@@ -827,7 +831,7 @@ function Hero({ data, goDonasi }) {
                 justifyContent: "space-between",
               }}
             >
-              Lihat rincian & cara berdonasi
+              Lihat rincian & cara berinfaq
               <ArrowUpRight size={16} />
             </button>
           </div>
@@ -1176,7 +1180,7 @@ function LokasiKunjungan() {
    DONASI & WAKAF — the automation-focused section
    ------------------------------------------------------------ */
 function waConfirmLink(kontak, project, amount) {
-  const msg = `Assalamu'alaikum, saya ingin mendonasikan/mewakafkan senilai ${formatRupiah(
+  const msg = `Assalamu'alaikum, saya ingin berinfaq/bershodaqoh atau mewakafkan senilai ${formatRupiah(
     amount
   )} untuk ${project.nama} TBQ Syanayya. Berikut bukti transfernya.`;
   return `https://wa.me/${kontak.nomor}?text=${encodeURIComponent(msg)}`;
@@ -1398,7 +1402,7 @@ function DonasiSection({ projects }) {
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <SectionTitle
           eyebrow="Kesempatan Berkolaborasi"
-          title="Donasi & Wakaf"
+          title="Infaq, Shodaqoh & Wakaf"
           sub="Setiap dukungan menjadi pahala yang mengalir sepanjang lantunan huruf Al-Qur'an yang berkumandang di TBQ Syanayya. Pilih program, tentukan nominal, dan konfirmasi langsung via WhatsApp."
         />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 40 }} className="two-col">
@@ -1505,10 +1509,9 @@ function Footer({ setPage }) {
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {[
                 { Icon: IconWhatsapp, href: `https://wa.me/${SOSMED.whatsapp}`, label: "WhatsApp" },
-                { Icon: Mail, href: `mailto:tbquran.syanayya@gmail.com`, label: "Email" },
+                { Icon: Mail, href: `mailto:tbquran.syanayya@gmail.com{SOSMED.email}`, label: "Email" },
                 { Icon: IconInstagram, href: `https://www.instagram.com/tbq_syanayya_depok/`, label: "Instagram" },
                 { Icon: IconFacebook, href: `https://web.facebook.com/tamansyanayya/`, label: "Facebook" },
-                { Icon: IconTiktok, href: SOSMED.tiktok, label: "TikTok" },
               ].map(({ Icon, href, label }) => (
                 <a
                   key={label}
@@ -1541,7 +1544,7 @@ function Footer({ setPage }) {
           title="" 
           style={{ borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: 36, paddingTop: 18, fontSize: 12, color: "rgba(255,255,255,0.4)", textAlign: "center", cursor: "default", userSelect: "none" }}
         >
-          © {new Date().getFullYear()} TBQ Syanayya — Situs dikelola untuk transparansi donasi & wakaf.
+          © {new Date().getFullYear()} TBQ Syanayya — Situs dikelola untuk transparansi infaq, shodaqoh & wakaf.
         </div>
       </div>
     </footer>
@@ -1580,7 +1583,7 @@ function AdminLogin({ onSuccess, setPage }) {
           <Lock size={22} color={T.brassLight} />
         </div>
         <h2 style={{ fontFamily: "'Reem Kufi', sans-serif", fontSize: 22, margin: "0 0 8px", color: T.ink }}>Panel Admin</h2>
-        <p style={{ fontSize: 13.5, color: "#6B6A5E", marginBottom: 22 }}>Masuk untuk mengelola pengurus, galeri, program donasi, dan data santri.</p>
+        <p style={{ fontSize: 13.5, color: "#6B6A5E", marginBottom: 22 }}>Masuk untuk mengelola pengurus, galeri, program infaq & shodaqoh, dan data santri.</p>
         <Field label="Kode Akses">
           <input
             type="password"
@@ -1612,7 +1615,7 @@ function AdminShell({ data, setData, save, setPage, saving }) {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "pengurus", label: "Pengurus", icon: Users },
     { id: "galeri", label: "Galeri", icon: ImagePlus },
-    { id: "donasi", label: "Program Donasi", icon: Wallet },
+    { id: "donasi", label: "Program Infaq & Shodaqoh", icon: Wallet },
     { id: "santri", label: "Data Santri", icon: GraduationCap },
   ];
 
@@ -1648,6 +1651,34 @@ function AdminShell({ data, setData, save, setPage, saving }) {
             <t.icon size={17} /> {t.label}
           </button>
         ))}
+        <a
+          href={JADWAL_KONTEN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            padding: "11px 14px",
+            borderRadius: 10,
+            background: "transparent",
+            color: "rgba(255,255,255,0.75)",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            marginBottom: 4,
+            textDecoration: "none",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            boxSizing: "border-box",
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <CalendarDays size={17} /> Kalender Konten
+          </span>
+          <ExternalLink size={13} style={{ opacity: 0.6, flexShrink: 0 }} />
+        </a>
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.12)", marginTop: 18, paddingTop: 14 }}>
           <button
             onClick={() => setPage("home")}
@@ -1705,7 +1736,7 @@ function AdminDashboard({ data }) {
   return (
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 26 }} className="grid-4">
-        <StatCard label="Total Donasi Terkumpul" value={formatRupiah(totalTerkumpul).replace("Rp ", "")} icon={Wallet} />
+        <StatCard label="Total Infaq & Shodaqoh Terkumpul" value={formatRupiah(totalTerkumpul).replace("Rp ", "")} icon={Wallet} />
         <StatCard label="Santri Aktif" value={data.santri.aktif} icon={GraduationCap} />
         <StatCard label="Daftar Tunggu" value={data.santri.tunggu} icon={Users} />
         <StatCard label="Progres Total (%)" value={pct(totalTerkumpul, totalTarget) + "%"} icon={TrendingUp} />
@@ -1713,7 +1744,7 @@ function AdminDashboard({ data }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 16 }} className="two-col">
         <div style={{ background: T.white, borderRadius: 16, padding: "22px 24px", border: "1px solid #E6E0CF" }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, marginBottom: 16 }}>Tren Donasi Bulanan (contoh log)</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: T.ink, marginBottom: 16 }}>Tren Infaq & Shodaqoh Bulanan (contoh log)</div>
           <div style={{ width: "100%", height: 220 }}>
             <ResponsiveContainer>
               <BarChart data={chartData}>
