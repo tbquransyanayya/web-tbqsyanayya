@@ -293,6 +293,15 @@
     if(!isNaN(d)) return isoDate(d);
     return s;
   }
+  // Toleransi variasi penulisan di sheet ("Multipages", "multi-page", dst.)
+  // supaya badge tetap rapi walau tim tidak ketik persis "multipage".
+  function normalizeFormat(raw){
+    const s = String(raw || '').trim().toLowerCase().replace(/[\s-]/g, '');
+    if(s.startsWith('multi')) return 'multipage';
+    if(s.startsWith('carousel')) return 'carousel';
+    if(s.startsWith('single')) return 'single';
+    return s;
+  }
   function currentWeekIndex(){
     const today = new Date(); today.setHours(0,0,0,0);
     return Math.floor((today - ANCHOR_DATE) / (7 * DAY_MS));
@@ -327,7 +336,7 @@
       // toleransi tipe/tanggal dari Sheets yang kadang berupa angka/spasi ekstra
       entry.date = normalizeDate(entry.date);
       entry.type = String(entry.type || '').trim().toLowerCase();
-      entry.format = String(entry.format || '').trim().toLowerCase();
+      entry.format = normalizeFormat(entry.format);
       entry.slides = parseInt(entry.slides, 10) || 1;
 
       const base = entry.date + '::' + entry.type;
@@ -376,6 +385,16 @@
     delete statusStore[key];
     syncStatus(key, {status:'', note:''});
   }
+  function showToast(message, isError){
+    const el = document.createElement('div');
+    el.textContent = message;
+    el.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);' +
+      'background:' + (isError ? 'var(--coral)' : 'var(--emerald-deep)') + ';color:#fff;' +
+      'font-family:"Sora",sans-serif;font-size:13px;font-weight:600;padding:10px 18px;' +
+      'border-radius:10px;z-index:100;box-shadow:0 6px 18px rgba(0,0,0,.2);';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
   function syncStatus(key, data){
     if(!STATUS_URL) return;
     // Content-Type text/plain sengaja dipakai supaya browser tidak mengirim
@@ -384,7 +403,17 @@
       method: 'POST',
       headers: {'Content-Type': 'text/plain;charset=utf-8'},
       body: JSON.stringify({ key, status: data.status || '', note: data.note || '' })
-    }).catch(() => { /* offline — status lokal tetap terlihat sampai koneksi kembali */ });
+    }).then(res => {
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(json => {
+      if(!json || json.ok !== true) throw new Error('Respons tidak sesuai: ' + JSON.stringify(json));
+      console.log('[status] tersimpan ke server:', key, data.status);
+      showToast('Tersimpan ke server tim ✓', false);
+    }).catch(err => {
+      console.error('[status] GAGAL simpan ke server:', err);
+      showToast('Gagal sinkron ke server tim — cek koneksi / setup STATUS_URL (lihat console)', true);
+    });
   }
   function submitNetlifyForm(formName, fields){
     const body = new URLSearchParams({ 'form-name': formName, ...fields }).toString();
@@ -680,10 +709,12 @@
     if(STATUS_URL){
       try{
         const res = await fetch(STATUS_URL);
+        if(!res.ok) throw new Error('HTTP ' + res.status);
         statusStore = await res.json();
+        console.log('[status] berhasil ambil status dari server:', Object.keys(statusStore).length, 'entri');
       }catch(e){
-        // gagal ambil status bersama (mis. offline) — lanjut dengan status kosong,
-        // approve/revisi baru tetap akan dikirim ke server begitu koneksi normal lagi
+        console.error('[status] GAGAL ambil status dari server saat buka halaman:', e);
+        showToast('Gagal ambil status dari server tim — cek console & STATUS_URL', true);
       }
     }
 
