@@ -841,6 +841,184 @@ function Hero({ data, goDonasi }) {
   );
 }
 
+/* ============================================================
+   JADWAL SHOLAT — live, berbasis lokasi pengunjung (AlAdhan API,
+   metode Kemenag RI). Jatuh ke koordinat TBQ Syanayya (Bedahan,
+   Sawangan, Depok) kalau izin lokasi ditolak / tidak didukung.
+   ============================================================ */
+const SHOLAT_DEFAULT_LAT = -6.394;
+const SHOLAT_DEFAULT_LNG = 106.8225;
+const SHOLAT_URUTAN = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
+const SHOLAT_LABEL = { Fajr: "Subuh", Dhuhr: "Dzuhur", Asr: "Ashar", Maghrib: "Maghrib", Isha: "Isya" };
+
+function sholatFmtJam(timeStr) {
+  // AlAdhan kadang mengembalikan "04:35 (WIB)" — ambil jam:menit saja
+  return timeStr.split(" ")[0];
+}
+
+function JadwalSholat() {
+  const [jadwal, setJadwal] = useState(null);
+  const [pakaiLokasiUser, setPakaiLokasiUser] = useState(null);
+  const [error, setError] = useState(false);
+  const [next, setNext] = useState(null);
+  const coordsRef = useRef({ lat: SHOLAT_DEFAULT_LAT, lng: SHOLAT_DEFAULT_LNG });
+
+  const ambilJadwal = useCallback(async (lat, lng, dariLokasiUser) => {
+    const tgl = new Date().toISOString().split("T")[0];
+    const url = `https://api.aladhan.com/v1/timings/${tgl}?latitude=${lat}&longitude=${lng}&method=20`;
+    try {
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.code !== 200) throw new Error("gagal ambil data");
+      setJadwal(json.data.timings);
+      setPakaiLokasiUser(dariLokasiUser);
+      setError(false);
+    } catch (e) {
+      setError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    function mulai() {
+      if (!navigator.geolocation) {
+        ambilJadwal(SHOLAT_DEFAULT_LAT, SHOLAT_DEFAULT_LNG, false);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          coordsRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          ambilJadwal(pos.coords.latitude, pos.coords.longitude, true);
+        },
+        () => ambilJadwal(SHOLAT_DEFAULT_LAT, SHOLAT_DEFAULT_LNG, false),
+        { timeout: 8000 }
+      );
+    }
+    mulai();
+    const refreshJam = setInterval(
+      () => ambilJadwal(coordsRef.current.lat, coordsRef.current.lng, pakaiLokasiUser),
+      60 * 60 * 1000
+    );
+    return () => clearInterval(refreshJam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ambilJadwal]);
+
+  useEffect(() => {
+    if (!jadwal) return;
+    function hitungBerikutnya() {
+      const now = new Date();
+      for (const key of SHOLAT_URUTAN) {
+        const [h, m] = sholatFmtJam(jadwal[key]).split(":").map(Number);
+        const waktu = new Date(now);
+        waktu.setHours(h, m, 0, 0);
+        if (waktu > now) {
+          const selisihMs = waktu - now;
+          return { key, jam: Math.floor(selisihMs / 3600000), menit: Math.floor((selisihMs % 3600000) / 60000) };
+        }
+      }
+      return null;
+    }
+    setNext(hitungBerikutnya());
+    const tick = setInterval(() => setNext(hitungBerikutnya()), 60 * 1000);
+    return () => clearInterval(tick);
+  }, [jadwal]);
+
+  return (
+    <section style={{ padding: "40px 24px", background: T.white, borderBottom: "1px solid #E6E0CF" }}>
+      <div
+        style={{
+          maxWidth: 1180,
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 220 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: T.limestoneDeep,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Building2 size={20} color={T.green} />
+          </div>
+          <div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: 15, color: T.ink }}>
+              Jadwal Sholat
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#6B6A5E" }}>
+              <MapPin size={12} />
+              {pakaiLokasiUser === null
+                ? "Mendeteksi lokasi…"
+                : pakaiLokasiUser
+                ? "Lokasi Anda saat ini"
+                : "Depok (lokasi default)"}
+            </div>
+          </div>
+        </div>
+
+        {error ? (
+          <div style={{ fontSize: 13.5, color: "#6B6A5E" }}>Gagal memuat jadwal sholat.</div>
+        ) : (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {SHOLAT_URUTAN.map((key) => {
+              const active = next?.key === key;
+              return (
+                <div
+                  key={key}
+                  style={{
+                    textAlign: "center",
+                    padding: "8px 14px",
+                    borderRadius: 12,
+                    background: active ? T.brass : T.limestoneDeep,
+                    minWidth: 68,
+                    transition: "background 0.3s ease",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: active ? "rgba(255,255,255,0.85)" : "#8A886F",
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    }}
+                  >
+                    {SHOLAT_LABEL[key]}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: active ? T.white : T.ink,
+                      marginTop: 2,
+                    }}
+                  >
+                    {jadwal ? sholatFmtJam(jadwal[key]) : "--:--"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{ fontSize: 12.5, color: "#8A886F", minWidth: 150, textAlign: "right" }} className="sholat-status">
+          {!error && next && `Menuju ${SHOLAT_LABEL[next.key]} — ${next.jam}j ${next.menit}m lagi`}
+          {!error && !next && jadwal && "Menuju Subuh besok"}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Tentang() {
   return (
     <section id="tentang" style={{ padding: "88px 24px", background: T.limestone }}>
@@ -2363,6 +2541,7 @@ export default function App() {
         <div className="app-root">
           <NavBar page={page} setPage={setPage} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
           <Hero data={data} goDonasi={goDonasi} />
+          <JadwalSholat />
           <Tentang />
           <VisiMisi />
           <Program />
